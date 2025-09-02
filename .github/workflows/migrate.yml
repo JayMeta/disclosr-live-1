@@ -6,6 +6,11 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    inputs:
+      sqlite_path:
+        description: 'Path to the sqlite DB file in the workspace (relative or absolute)'
+        required: false
+        default: '../disclosr_backend/disclosr.db'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -20,4 +25,4 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          python scripts/migrate_to_supabase.py --sqlite ../disclosr_backend/disclosr.db --pg "${{ secrets.DATABASE_URL }}"
+          python scripts/migrate_to_supabase.py --sqlite "${{ github.event.inputs.sqlite_path || '../disclosr_backend/disclosr.db' }}" --pg "${{ secrets.DATABASE_URL }}"
