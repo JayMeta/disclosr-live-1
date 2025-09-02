@@ -1,0 +1,44 @@
+name: Create DB schema
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  create-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Create extension and table
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -e
+          cat > create_schema.sql <<'SQL'
+          CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+          CREATE TABLE IF NOT EXISTS filings (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            exchange text,
+            symbol text,
+            company text,
+            headline text,
+            filed_at timestamptz,
+            pdf_url text,
+            pdf_storage_url text,
+            summary text,
+            impact_score numeric,
+            created_at timestamptz DEFAULT now()
+          );
+          SQL
+
+          if [ -z "$DATABASE_URL" ]; then
+            echo "ERROR: DATABASE_URL secret is not set. Set it in repository secrets and re-run."; exit 1
+          fi
+
+          echo "Running SQL against $DATABASE_URL"
+          psql "$DATABASE_URL" -f create_schema.sql
+          echo "Table creation completed. Row count:" 
+          psql "$DATABASE_URL" -c "SELECT count(*) FROM filings;"
